@@ -1,4 +1,7 @@
 const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+const path = require("path");
 
 const BASE_URL = "http://localhost:3000";
 
@@ -34,6 +37,35 @@ async function testServer() {
     });
     console.log("✅ Image-based theme generation passed");
     console.log(`   Generated ${imageResponse.data.themes.length} themes`);
+    console.log("");
+
+    // Test 3.5: Generate theme from uploaded image (if test image exists)
+    console.log("3.5. Testing theme generation from uploaded image...");
+    const testImagePath = path.join(__dirname, "test-image.jpg");
+    if (fs.existsSync(testImagePath)) {
+      const formData = new FormData();
+      formData.append("image", fs.createReadStream(testImagePath));
+
+      const uploadResponse = await axios.post(
+        `${BASE_URL}/generate-theme`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+          },
+        }
+      );
+      console.log("✅ Uploaded image theme generation passed");
+      console.log(`   Generated ${uploadResponse.data.themes.length} themes`);
+      console.log(
+        `   Uploaded image URL: ${uploadResponse.data.input.uploaded_image}`
+      );
+    } else {
+      console.log("⚠️  Skipping uploaded image test (no test-image.jpg found)");
+      console.log(
+        "   Create a test-image.jpg file in the project root to test image uploads"
+      );
+    }
     console.log("");
 
     // Test 4: Test error handling (invalid hex color)

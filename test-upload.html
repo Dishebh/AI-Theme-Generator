@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Generator - Image Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .upload-btn:hover {
+            background: #0056b3;
+        }
+
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .generate-btn {
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .generate-btn:hover {
+            background: #218838;
+        }
+
+        .generate-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 30px;
+        }
+
+        .theme-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎨 Theme Generator - Image Upload Test</h1>
+
+        <div class="upload-section" id="uploadSection">
+            <h3>Upload an Image</h3>
+            <p>Drag and drop an image here or click to select</p>
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Image
+            </button>
+        </div>
+
+        <div class="preview" id="preview" style="display: none;">
+            <h4>Image Preview:</h4>
+            <img id="previewImg" alt="Preview">
+        </div>
+
+        <div style="text-align: center;">
+            <button class="generate-btn" id="generateBtn" onclick="generateTheme()" disabled>
+                Generate Theme from Uploaded Image
+            </button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>🔄 Generating themes... Please wait...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImg = document.getElementById('previewImg');
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+
+        let selectedFile = null;
+
+        // Drag and drop functionality
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file.');
+                return;
+            }
+
+            selectedFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+                generateBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function generateTheme() {
+            if (!selectedFile) {
+                showError('Please select an image first.');
+                return;
+            }
+
+            // Show loading
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.innerHTML = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                const response = await fetch('http://localhost:3000/generate-theme', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate theme');
+                }
+
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            results.innerHTML = `
+                <h3>🎨 Generated Themes (${data.themes.length})</h3>
+                <p><strong>Uploaded Image:</strong> <a href="${data.input.uploaded_image}" target="_blank">View Image</a></p>
+            `;
+
+            data.themes.forEach((theme, index) => {
+                const themeCard = document.createElement('div');
+                themeCard.className = 'theme-card';
+                themeCard.innerHTML = `
+                    <h4>Theme ${index + 1}</h4>
+                    <p><strong>Primary Color:</strong> 
+                        <span class="color-preview" style="background-color: ${theme.theme_primary_color}"></span>
+                        ${theme.theme_primary_color}
+                    </p>
+                    <p><strong>Secondary Color:</strong> 
+                        <span class="color-preview" style="background-color: ${theme.theme_secondary_color}"></span>
+                        ${theme.theme_secondary_color}
+                    </p>
+                    <p><strong>Font:</strong> ${theme.theme_font_family}</p>
+                    <p><strong>Event Background:</strong> <a href="${theme.event_background.replace('Url(\'', '').replace('\')', '')}" target="_blank">View</a></p>
+                    <p><strong>Splash Hero:</strong> <a href="${theme.splash_page_hero.replace('Url(\'', '').replace('\')', '')}" target="_blank">View</a></p>
+                    <details>
+                        <summary>Full Theme Object</summary>
+                        <pre style="background: #f1f1f1; padding: 10px; border-radius: 5px; overflow-x: auto;">${JSON.stringify(theme, null, 2)}</pre>
+                    </details>
+                `;
+                results.appendChild(themeCard);
+            });
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

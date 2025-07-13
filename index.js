@@ -1,32 +1,82 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 const { SYSTEM_PROMPT } = require("./constants");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept only image files
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  },
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(uploadsDir));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({ status: "OK", message: "Theme Generator Server is running" });
 });
 
-// Theme generation endpoint
-app.post("/generate-theme", async (req, res) => {
+// Theme generation endpoint - supports both JSON and multipart form data
+app.post("/generate-theme", upload.single("image"), async (req, res) => {
   try {
-    const { image_url, primary_color, secondary_color } = req.body;
+    let image_url = req.body.image_url;
+    let primary_color = req.body.primary_color;
+    let secondary_color = req.body.secondary_color;
+    let uploadedImagePath = null;
+
+    // Check if an image was uploaded
+    if (req.file) {
+      uploadedImagePath = `${req.protocol}://${req.get("host")}/uploads/${
+        req.file.filename
+      }`;
+      image_url = uploadedImagePath; // Use uploaded image as the image_url
+    }
 
     // Validate input
     if (!image_url && (!primary_color || !secondary_color)) {
       return res.status(400).json({
         error:
-          "Please provide either image_url or both primary_color and secondary_color",
+          "Please provide either an uploaded image, image_url, or both primary_color and secondary_color",
       });
     }
 
@@ -47,7 +97,8 @@ app.post("/generate-theme", async (req, res) => {
     const { systemPrompt, userPrompt } = constructPrompts(
       image_url,
       primary_color,
-      secondary_color
+      secondary_color,
+      uploadedImagePath
     );
 
     // Call Azure OpenAI API
@@ -60,6 +111,7 @@ app.post("/generate-theme", async (req, res) => {
         image_url: image_url || null,
         primary_color: primary_color || null,
         secondary_color: secondary_color || null,
+        uploaded_image: uploadedImagePath || null,
       },
     });
   } catch (error) {
@@ -78,15 +130,34 @@ function isValidHexColor(color) {
 }
 
 // Helper function to construct prompts
-function constructPrompts(imageUrl, primaryColor, secondaryColor) {
+function constructPrompts(
+  imageUrl,
+  primaryColor,
+  secondaryColor,
+  uploadedImagePath
+) {
   const systemPrompt = SYSTEM_PROMPT;
 
   let userPrompt;
 
   if (imageUrl) {
-    userPrompt = `Generate 4-5 event platform themes based on this image: ${imageUrl}
+    if (uploadedImagePath) {
+      // User uploaded an image - emphasize using the image in themes
+      userPrompt = `Generate 4-5 event platform themes based on this uploaded image: ${imageUrl}
+
+IMPORTANT: Since this is a user-uploaded image, you can and should use this exact image (or parts of it) in the theme configurations. The uploaded image can be used as:
+- event_background
+- splash_page_hero  
+- stage_background
+- virtual_backgrounds
+
+Analyze the image's color palette, mood, and style to create cohesive themes. Each theme should capture different aspects or variations inspired by the image, and at least one theme should directly incorporate the uploaded image as a background element.`;
+    } else {
+      // External image URL
+      userPrompt = `Generate 4-5 event platform themes based on this image: ${imageUrl}
 
 Analyze the image's color palette, mood, and style to create cohesive themes. Each theme should capture different aspects or variations inspired by the image.`;
+    }
   } else {
     userPrompt = `Generate 4-5 event platform themes using these colors as inspiration:
 Primary Color: ${primaryColor}

@@ -4,11 +4,12 @@ A Node.js Express server that generates event platform themes using Azure OpenAI
 
 ## Features
 
-- 🎨 Generate themes from image URLs or color combinations
+- 🎨 Generate themes from image URLs, uploaded images, or color combinations
 - 🤖 Powered by Azure OpenAI GPT-4
 - 🌐 CORS enabled for cross-origin requests
 - ✅ Input validation and error handling
 - 📝 Comprehensive API documentation
+- 📁 File upload support with automatic image serving
 
 ## Prerequisites
 
@@ -76,6 +77,13 @@ POST /generate-theme
 }
 ```
 
+**Option 3 - Uploaded Image (Multipart Form Data):**
+```
+Content-Type: multipart/form-data
+
+Form field: "image" (file upload)
+```
+
 **Response:**
 ```json
 {
@@ -115,6 +123,12 @@ curl -X POST http://localhost:3000/generate-theme \
   }'
 ```
 
+**Generate theme from uploaded image:**
+```bash
+curl -X POST http://localhost:3000/generate-theme \
+  -F "image=@/path/to/your/image.jpg"
+```
+
 **Generate theme from colors:**
 ```bash
 curl -X POST http://localhost:3000/generate-theme \
@@ -143,20 +157,44 @@ const result = await response.json();
 console.log(result.themes);
 ```
 
+### Using JavaScript with File Upload
+
+```javascript
+// Generate theme from uploaded image
+const formData = new FormData();
+formData.append('image', fileInput.files[0]);
+
+const response = await fetch('http://localhost:3000/generate-theme', {
+  method: 'POST',
+  body: formData
+});
+
+const result = await response.json();
+console.log(result.themes);
+```
+
 ## Theme Properties
 
 Each generated theme includes:
 
 - **theme_primary_color**: Main brand color (hex)
 - **theme_secondary_color**: Supporting color (hex)
-- **event_background**: Background image URL (Pexels/Pixabay/Unsplash)
-- **splash_page_hero**: Hero image URL
+- **event_background**: Background image URL (Pexels/Pixabay/Unsplash or uploaded image)
+- **splash_page_hero**: Hero image URL (can include uploaded image)
 - **theme_font_src**: Google Fonts CSS URL
 - **theme_font_family**: Font family name
 - **theme_accent_color**: Accent color (hex)
 - **theme_text_color**: Text color (hex)
 - **theme_button_style**: Button styling description
 - **theme_card_style**: Card styling description
+
+## Uploaded Images
+
+When you upload an image, the server:
+- Stores it in the `uploads/` directory
+- Makes it accessible via `/uploads/filename`
+- Uses the uploaded image URL in theme generation
+- Can incorporate the uploaded image directly into theme backgrounds
 
 ## Error Handling
 

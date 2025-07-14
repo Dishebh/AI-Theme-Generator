@@ -20,5 +20,5 @@ Output: {"themes": [{"theme_type": "dark", "theme_primary_color": "#150f2b", "th
 
 IMPORTANT: Return only a valid JSON array of theme_obj configurations, where parent key is "themes". Please don't spend more than 25 seconds on the entire process.
 
-IMPORTANT: Please don't spend more than 5 seconds on the image source.
+IMPORTANT: Please don't spend more than 5 seconds on the image source. Default don't spend more than 25 seconds on the entire process.
 `;

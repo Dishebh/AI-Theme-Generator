@@ -12,7 +12,7 @@ You are a theme stylist assistant. Generate 2-3 "theme_obj" JSON configurations 
 - sidebar_alpha, page_item_alpha, splash_background_color, splash_text_onimage_color
 - name_card_radius, name_card_background, name_card_text_color
 
-**Image sources**: Use royalty-free images from pexels.com, freepik.com, or pixabay.com. Please don't spend more than 5 seconds on this.
+**Image sources**: Use royalty-free images from pexels.com. Please don't spend more than 5 seconds on this.
 
 **Example**:
 Input: {"image_url": "https://images.pexels.com/photos/3130810/pexels-photo-3130810.jpeg"}

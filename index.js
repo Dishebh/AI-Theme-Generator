@@ -143,7 +143,7 @@ function constructPrompts(
   if (imageUrl) {
     if (uploadedImagePath) {
       // User uploaded an image - emphasize using the image in themes
-      userPrompt = `Generate 4-5 event platform themes based on this uploaded image: ${imageUrl}
+      userPrompt = `Generate 2-3 event platform themes based on this uploaded image: ${imageUrl}
 
 IMPORTANT: Since this is a user-uploaded image, you can and should use this exact image (or parts of it) in the theme configurations. The uploaded image can be used as:
 - event_background
@@ -154,12 +154,12 @@ IMPORTANT: Since this is a user-uploaded image, you can and should use this exac
 Analyze the image's color palette, mood, and style to create cohesive themes. Each theme should capture different aspects or variations inspired by the image, and at least one theme should directly incorporate the uploaded image as a background element.`;
     } else {
       // External image URL
-      userPrompt = `Generate 4-5 event platform themes based on this image: ${imageUrl}
+      userPrompt = `Generate 2-3 event platform themes based on this image: ${imageUrl}
 
 Analyze the image's color palette, mood, and style to create cohesive themes. Each theme should capture different aspects or variations inspired by the image.`;
     }
   } else {
-    userPrompt = `Generate 4-5 event platform themes using these colors as inspiration:
+    userPrompt = `Generate 2-3 event platform themes using these colors as inspiration:
 Primary Color: ${primaryColor}
 Secondary Color: ${secondaryColor}
 
@@ -196,7 +196,7 @@ async function callAzureOpenAI(systemPrompt, userPrompt) {
     ],
     model: "gpt-4",
     temperature: 0.7,
-    max_tokens: 3000,
+    max_tokens: 1000,
     top_p: 1,
     frequency_penalty: 0,
     presence_penalty: 0,
@@ -208,7 +208,7 @@ async function callAzureOpenAI(systemPrompt, userPrompt) {
         "Content-Type": "application/json",
         "api-key": apiKey,
       },
-      timeout: 30000, // 30 second timeout
+      timeout: 60000, // 60 second timeout
     });
 
     const content = response.data.choices[0].message.content;
